@@ -6,13 +6,13 @@ import {
   removeToCart,
   removeSingleIteams,
 } from "../redux/features/cartSlice";
-import { loadStripe } from '@stripe/stripe-js';
+import { loadStripe } from "@stripe/stripe-js";
 
 const CartDetails = () => {
   const { carts } = useSelector((state) => state.allCart);
   const [totalprice, setPrice] = useState(0);
   const [totalquantity, setTotalQuantity] = useState(0);
-
+  const [loading, setLoading] = useState(false);
 
   const dispatch = useDispatch();
 
@@ -61,31 +61,42 @@ const CartDetails = () => {
   }, [countquantity]);
 
   const makePayment = async () => {
-    const stripe = await loadStripe("pk_test_51OwN4hSHLsSvU0ECffwwh5i4poBjDNSKyDvXu66ZV0WkxUqHVcCfsp2FXJ1sGjZw9ZtPnHzFg7CeGcbSfjZPvGiR00gYCVdSVA");
+    setLoading(true); // Start loading
+    try {
+      const stripe = await loadStripe(
+        "pk_test_51OwN4hSHLsSvU0ECffwwh5i4poBjDNSKyDvXu66ZV0WkxUqHVcCfsp2FXJ1sGjZw9ZtPnHzFg7CeGcbSfjZPvGiR00gYCVdSVA"
+      );
 
-    const body = {
-      products: carts,
-    };
+      const body = {
+        products: carts,
+      };
 
-    const headers = {
-      "Content-Type": "application/json"
-    };
+      const headers = {
+        "Content-Type": "application/json",
+      };
 
-    const response = await fetch("http://localhost:5000/api/create-checkout-session", {
-      method: "POST",
-      headers: headers,
-      body: JSON.stringify(body)
-    });
+      const response = await fetch(
+        "http://localhost:5000/api/create-checkout-session",
+        {
+          method: "POST",
+          headers: headers,
+          body: JSON.stringify(body),
+        }
+      );
 
-    const session = await response.json();
+      const session = await response.json();
 
-    const result = await stripe.redirectToCheckout({
-      sessionId: session.id
-    });
-    console.log('result -- ',result)
-    if (result.error) {
-      console.log(result.error);
+      const result = await stripe.redirectToCheckout({
+        sessionId: session.id,
+      });
+      console.log("result -- ", result);
+      if (result.error) {
+        console.log(result.error);
+      }
+    } catch (error) {
+      console.error("Payment error:", error);
     }
+    setLoading(false); // End loading
   };
 
   return (
@@ -210,8 +221,9 @@ const CartDetails = () => {
                           <button
                             className="btn btn-success"
                             onClick={makePayment}
-                            type="button">
-                            Checkout
+                            type="button"
+                            disabled={loading}>
+                            {loading ? "Processing..." : "Checkout"}{" "}
                           </button>
                         </th>
                       </tr>
